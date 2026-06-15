@@ -1,0 +1,50 @@
+# ─── Python ───────────────────────────────────────────────
+__pycache__/
+*.py[cod]
+*$py.class
+*.pyo
+*.pyd
+.Python
+
+# Virtual environments
+venv/
+.venv/
+env/
+ENV/
+
+# ─── Environment / Secrets ────────────────────────────────
+.env
+.env.*
+!.env.example
+
+# ─── Node / Frontend ──────────────────────────────────────
+node_modules/
+dist/
+.cache/
+*.local
+
+# ─── IDE / Editor ─────────────────────────────────────────
+.vscode/
+.idea/
+*.suo
+*.ntvs*
+*.njsproj
+*.sln
+*.sw?
+.DS_Store
+Thumbs.db
+
+# ─── Logs ─────────────────────────────────────────────────
+*.log
+npm-debug.log*
+
+# ─── Test / Scratch ───────────────────────────────────────
+test.txt
+test_out.pdf
+test_smart.txt
+scratch/
+
+# ─── Build artifacts ──────────────────────────────────────
+*.pyc
+*.pyo
+build/
