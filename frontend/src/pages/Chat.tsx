@@ -2,6 +2,7 @@ import React, { useState, useRef, useEffect } from 'react';
 import { MessageSquare, Send, Upload, FileText, Loader2, ChevronDown, ChevronUp } from 'lucide-react';
 import { useLocation } from 'react-router-dom';
 import { useToast } from '../contexts/ToastContext';
+import { API_URL } from '../config/api';
 
 interface SourceChunk {
   content: string;
@@ -18,18 +19,18 @@ interface Message {
 const Chat = () => {
   const [messages, setMessages] = useState<Message[]>([]);
   const [inputValue, setInputValue] = useState('');
-  
+
   const [documentId, setDocumentId] = useState<string | null>(null);
   const [filename, setFilename] = useState<string | null>(null);
-  
+
   const [isIngesting, setIsIngesting] = useState(false);
   const [isTyping, setIsTyping] = useState(false);
-  
+
   const [expandedSources, setExpandedSources] = useState<Set<string>>(new Set());
-  
+
   const messagesEndRef = useRef<HTMLDivElement>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
-  
+
   const location = useLocation();
   const { error, info } = useToast();
 
@@ -66,7 +67,7 @@ const Chat = () => {
     formData.append('file', file);
 
     try {
-      const response = await fetch('http://localhost:8000/api/v1/chat/ingest', {
+      const response = await fetch(`${API_URL}/api/v1/chat/ingest`, {
         method: 'POST',
         body: formData,
       });
@@ -77,7 +78,7 @@ const Chat = () => {
 
       const data = await response.json();
       setDocumentId(data.document_id);
-      
+
       // Add initial greeting message
       setMessages([
         {
@@ -99,7 +100,7 @@ const Chat = () => {
 
   const handleSendMessage = async (e: React.FormEvent) => {
     e.preventDefault();
-    
+
     if (!inputValue.trim() || !documentId) return;
 
     const userMsg: Message = {
@@ -113,7 +114,7 @@ const Chat = () => {
     setIsTyping(true);
 
     try {
-      const response = await fetch('http://localhost:8000/api/v1/chat/ask', {
+      const response = await fetch(`${API_URL}/api/v1/chat/ask`, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
@@ -129,7 +130,7 @@ const Chat = () => {
       }
 
       const data = await response.json();
-      
+
       const aiMsg: Message = {
         id: (Date.now() + 1).toString(),
         role: 'ai',
@@ -163,7 +164,7 @@ const Chat = () => {
           <MessageSquare className="text-gray-900" />
           Document Q&A
         </h2>
-        
+
         <div className="flex items-center gap-3">
           {filename && (
             <div className="text-sm text-gray-700 bg-white px-4 py-2 rounded-full border border-gray-200 flex items-center gap-2 shadow-sm">
@@ -171,16 +172,16 @@ const Chat = () => {
               <span className="truncate max-w-[200px]">{filename}</span>
             </div>
           )}
-          
+
           <div>
-            <input 
-              type="file" 
-              ref={fileInputRef} 
-              className="hidden" 
+            <input
+              type="file"
+              ref={fileInputRef}
+              className="hidden"
               onChange={handleFileUpload}
               accept=".pdf,.docx,.txt"
             />
-            <button 
+            <button
               onClick={() => fileInputRef.current?.click()}
               disabled={isIngesting}
               className="flex items-center gap-2 px-4 py-2 bg-white hover:bg-gray-50 text-gray-800 border border-gray-200 rounded-lg transition-colors text-sm font-medium disabled:opacity-50 shadow-sm"
@@ -196,7 +197,7 @@ const Chat = () => {
 
       {/* Main Chat Area */}
       <div className="flex-1 bg-white border border-gray-200 rounded-2xl overflow-hidden shadow-sm flex flex-col relative">
-        
+
         {/* Messages */}
         <div className="flex-1 p-4 sm:p-6 overflow-y-auto space-y-6">
           {!documentId && !isIngesting && messages.length === 0 && (
@@ -226,29 +227,29 @@ const Chat = () => {
                   ${isAI ? 'bg-gray-100 text-gray-900' : 'bg-black text-white'}`}>
                   {isAI ? 'AI' : 'U'}
                 </div>
-                
+
                 <div className={`max-w-[85%] sm:max-w-[75%] flex flex-col ${isAI ? 'items-start' : 'items-end'}`}>
                   {/* Chat Bubble */}
                   <div className={`px-4 py-3 text-[15px] leading-relaxed shadow-sm
-                    ${isAI 
-                      ? 'bg-gray-100 text-gray-800 rounded-2xl rounded-tl-none border border-gray-200' 
+                    ${isAI
+                      ? 'bg-gray-100 text-gray-800 rounded-2xl rounded-tl-none border border-gray-200'
                       : 'bg-black text-white rounded-2xl rounded-tr-none'
                     }`}
                   >
                     <p className="whitespace-pre-wrap">{msg.content}</p>
                   </div>
-                  
+
                   {/* Sources Section */}
                   {isAI && showSources && (
                     <div className="mt-2 w-full max-w-sm">
-                      <button 
+                      <button
                         onClick={() => toggleSource(msg.id)}
                         className="flex items-center gap-1 text-xs text-gray-400 hover:text-gray-900 transition-colors"
                       >
                         {isExpanded ? <ChevronUp size={14} /> : <ChevronDown size={14} />}
                         {isExpanded ? 'Hide Sources' : `${msg.sources!.length} Source${msg.sources!.length > 1 ? 's' : ''}`}
                       </button>
-                      
+
                       {isExpanded && (
                         <div className="mt-2 space-y-2">
                           {msg.sources!.map((source, idx) => (
@@ -267,7 +268,7 @@ const Chat = () => {
               </div>
             );
           })}
-          
+
           {/* Typing Indicator */}
           {isTyping && (
             <div className="flex gap-4 animate-fade-in-up">
@@ -281,7 +282,7 @@ const Chat = () => {
               </div>
             </div>
           )}
-          
+
           {/* Invisible div to scroll to */}
           <div ref={messagesEndRef} />
         </div>
@@ -297,7 +298,7 @@ const Chat = () => {
               placeholder={documentId ? "Ask a question about the document..." : "Upload a document first to start chatting"}
               className="w-full bg-white border border-gray-300 text-gray-800 rounded-xl pl-4 pr-14 py-3.5 focus:outline-none focus:ring-2 focus:ring-gray-900 focus:border-gray-900 transition-all placeholder-gray-400 disabled:opacity-50 disabled:cursor-not-allowed shadow-sm"
             />
-            <button 
+            <button
               type="submit"
               disabled={!inputValue.trim() || !documentId || isTyping}
               className="absolute right-2 p-2.5 bg-white hover:bg-gray-100 text-black rounded-lg transition-all disabled:opacity-50 disabled:cursor-not-allowed disabled:hover:bg-white shadow-md shadow-white/10"

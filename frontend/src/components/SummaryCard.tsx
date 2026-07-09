@@ -1,6 +1,7 @@
 import React, { useState } from 'react';
 import { Download, FileText, CheckCircle2, ChevronRight, Loader2, AlertCircle, MessageSquare } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
+import { API_URL } from '../config/api';
 
 export interface SummaryData {
   title: string;
@@ -24,9 +25,9 @@ const SummaryCard: React.FC<SummaryCardProps> = ({ data, documentId, filename })
   const handleDownloadPDF = async () => {
     setIsDownloading(true);
     setDownloadError(null);
-    
+
     try {
-      const response = await fetch('http://localhost:8000/api/v1/download/pdf', {
+      const response = await fetch(`${API_URL}/api/v1/download/pdf`, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
@@ -42,16 +43,16 @@ const SummaryCard: React.FC<SummaryCardProps> = ({ data, documentId, filename })
       const blob = await response.blob();
       const pdfBlob = new Blob([blob], { type: 'application/pdf' });
       const url = window.URL.createObjectURL(pdfBlob);
-      
+
       // Open the PDF in a new tab for instant viewing/printing
       window.open(url, '_blank');
-      
+
       const a = document.createElement('a');
       a.href = url;
       a.download = `${data.title.replace(/[^a-z0-9]/gi, '_').toLowerCase()}_summary.pdf`;
       document.body.appendChild(a);
       a.click();
-      
+
       // Delay cleanup to remove the temporary link element.
       // We do NOT revoke the URL so that the PDF preview tab and native browser downloads remain functional.
       setTimeout(() => {
@@ -73,10 +74,10 @@ const SummaryCard: React.FC<SummaryCardProps> = ({ data, documentId, filename })
             <h1 className="text-3xl font-bold text-gray-900 leading-tight">
               {data.title}
             </h1>
-            
+
             <div className="flex flex-wrap gap-2 pt-2">
               {data.keywords.map((keyword, idx) => (
-                <span 
+                <span
                   key={idx}
                   className="px-3 py-1 text-xs font-semibold bg-gray-900 text-white border border-gray-900 rounded-full"
                 >
@@ -85,7 +86,7 @@ const SummaryCard: React.FC<SummaryCardProps> = ({ data, documentId, filename })
               ))}
             </div>
           </div>
-          
+
           <div className="flex-shrink-0 flex flex-col gap-3">
             <button
               onClick={handleDownloadPDF}
@@ -154,8 +155,8 @@ const SummaryCard: React.FC<SummaryCardProps> = ({ data, documentId, filename })
             </h2>
             <div className="space-y-4">
               {data.highlights.map((highlight, idx) => (
-                <blockquote 
-                  key={idx} 
+                <blockquote
+                  key={idx}
                   className="pl-4 py-2 border-l-4 border-gray-400 bg-gray-50 rounded-r-lg text-gray-700 italic"
                 >
                   "{highlight}"

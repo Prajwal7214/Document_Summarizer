@@ -3,6 +3,7 @@ import type { DragEvent, ChangeEvent } from 'react';
 import { UploadCloud, File as FileIcon, X, Loader2, AlertCircle, CheckCircle2 } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
 import { useToast } from '../contexts/ToastContext';
+import { API_URL } from '../config/api';
 
 type UploadMode = 'single' | 'multiple';
 type SummaryType = 'short' | 'detailed' | 'academic';
@@ -13,7 +14,7 @@ const FileUpload = () => {
   const [summaryType, setSummaryType] = useState<SummaryType>('short');
   const [isDragging, setIsDragging] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
-  
+
   const fileInputRef = useRef<HTMLInputElement>(null);
   const navigate = useNavigate();
   const { toast, success, error } = useToast();
@@ -31,7 +32,7 @@ const FileUpload = () => {
   const handleDrop = (e: DragEvent<HTMLDivElement>) => {
     e.preventDefault();
     setIsDragging(false);
-    
+
     if (e.dataTransfer.files && e.dataTransfer.files.length > 0) {
       processFiles(Array.from(e.dataTransfer.files));
     }
@@ -47,11 +48,11 @@ const FileUpload = () => {
     // Filter for accepted types
     const validTypes = ['application/pdf', 'application/vnd.openxmlformats-officedocument.wordprocessingml.document', 'text/plain'];
     const validFiles = newFiles.filter(file => validTypes.includes(file.type) || file.name.endsWith('.pdf') || file.name.endsWith('.docx') || file.name.endsWith('.txt'));
-    
+
     if (validFiles.length !== newFiles.length) {
       toast("Some files were rejected. Only PDF, DOCX, and TXT are supported.", 'error');
     }
-    
+
     if (validFiles.length > 0) {
       if (mode === 'single') {
         setFiles([validFiles[0]]);
@@ -59,7 +60,7 @@ const FileUpload = () => {
         setFiles(prev => [...prev, ...validFiles]);
       }
     }
-    
+
     // Reset file input so same file can be selected again
     if (fileInputRef.current) {
       fileInputRef.current.value = '';
@@ -72,14 +73,15 @@ const FileUpload = () => {
 
   const handleSubmit = async () => {
     if (files.length === 0) return;
-    
+
     setIsLoading(true);
-    
+
     const formData = new FormData();
-    const endpoint = mode === 'single' 
-      ? `http://localhost:8000/api/v1/summarize?summary_type=${summaryType}`
-      : `http://localhost:8000/api/v1/summarize-multiple?summary_type=${summaryType}`;
-      
+    const endpoint = mode === 'single'
+      ? `${API_URL}/api/v1/summarize?summary_type=${summaryType}`
+      : `${API_URL}/api/v1/summarize-multiple?summary_type=${summaryType}`;
+
+
     if (mode === 'single') {
       formData.append('file', files[0]);
     } else {
@@ -98,20 +100,20 @@ const FileUpload = () => {
 
       const data = await response.json();
       success("Documents processed successfully!");
-      
+
       // Navigate to respective pages and pass data
       if (mode === 'single') {
-        navigate('/summary', { 
-          state: { 
-            data, 
+        navigate('/summary', {
+          state: {
+            data,
             document_id: data.document_id || Date.now().toString(), // fallback
-            filename: files[0].name 
-          } 
+            filename: files[0].name
+          }
         });
       } else {
         navigate('/documents', { state: { data } });
       }
-      
+
     } catch (err: any) {
       error(err.message || "An error occurred during upload. Please try again.");
     } finally {
@@ -129,21 +131,19 @@ const FileUpload = () => {
               setMode('single');
               if (files.length > 1) setFiles([files[0]]);
             }}
-            className={`px-4 py-2 text-sm font-medium rounded-md transition-all ${
-              mode === 'single' 
-                ? 'bg-black text-white shadow-sm' 
-                : 'text-gray-500 hover:text-gray-800'
-            }`}
+            className={`px-4 py-2 text-sm font-medium rounded-md transition-all ${mode === 'single'
+              ? 'bg-black text-white shadow-sm'
+              : 'text-gray-500 hover:text-gray-800'
+              }`}
           >
             Single File
           </button>
           <button
             onClick={() => setMode('multiple')}
-            className={`px-4 py-2 text-sm font-medium rounded-md transition-all ${
-              mode === 'multiple' 
-                ? 'bg-black text-white shadow-sm' 
-                : 'text-gray-500 hover:text-gray-800'
-            }`}
+            className={`px-4 py-2 text-sm font-medium rounded-md transition-all ${mode === 'multiple'
+              ? 'bg-black text-white shadow-sm'
+              : 'text-gray-500 hover:text-gray-800'
+              }`}
           >
             Multiple Files
           </button>
@@ -169,11 +169,10 @@ const FileUpload = () => {
         onDragLeave={handleDragLeave}
         onDrop={handleDrop}
         onClick={() => fileInputRef.current?.click()}
-        className={`flex flex-col items-center justify-center w-full h-56 border-2 border-dashed rounded-2xl cursor-pointer transition-all duration-300 ${
-          isDragging 
-            ? 'bg-gray-100 border-gray-900' 
-            : 'bg-white border-gray-300 hover:bg-gray-50 hover:border-gray-500'
-        }`}
+        className={`flex flex-col items-center justify-center w-full h-56 border-2 border-dashed rounded-2xl cursor-pointer transition-all duration-300 ${isDragging
+          ? 'bg-gray-100 border-gray-900'
+          : 'bg-white border-gray-300 hover:bg-gray-50 hover:border-gray-500'
+          }`}
       >
         <div className="flex flex-col items-center justify-center pt-5 pb-6 space-y-4">
           <div className={`p-4 rounded-full transition-colors duration-300 ${isDragging ? 'bg-gray-200' : 'bg-gray-100'}`}>
@@ -186,10 +185,10 @@ const FileUpload = () => {
             <p className="text-sm text-gray-400">PDF, DOCX, TXT (Max: 50MB)</p>
           </div>
         </div>
-        <input 
+        <input
           ref={fileInputRef}
-          type="file" 
-          className="hidden" 
+          type="file"
+          className="hidden"
           multiple={mode === 'multiple'}
           accept=".pdf,.docx,.txt,application/pdf,application/vnd.openxmlformats-officedocument.wordprocessingml.document,text/plain"
           onChange={handleFileChange}
@@ -219,7 +218,7 @@ const FileUpload = () => {
                     {(file.size / 1024 / 1024).toFixed(2)} MB
                   </span>
                 </div>
-                <button 
+                <button
                   onClick={(e) => { e.stopPropagation(); removeFile(idx); }}
                   className="p-1 text-gray-500 hover:text-red-400 hover:bg-red-400/10 rounded transition-all"
                   disabled={isLoading}
@@ -236,11 +235,10 @@ const FileUpload = () => {
       <button
         onClick={handleSubmit}
         disabled={files.length === 0 || isLoading}
-        className={`w-full py-3.5 rounded-xl font-semibold flex items-center justify-center gap-2 transition-all ${
-          files.length === 0 || isLoading
-            ? 'bg-gray-200 text-gray-400 cursor-not-allowed border border-gray-300'
-            : 'bg-black hover:bg-gray-900 text-white shadow-lg'
-        }`}
+        className={`w-full py-3.5 rounded-xl font-semibold flex items-center justify-center gap-2 transition-all ${files.length === 0 || isLoading
+          ? 'bg-gray-200 text-gray-400 cursor-not-allowed border border-gray-300'
+          : 'bg-black hover:bg-gray-900 text-white shadow-lg'
+          }`}
       >
         {isLoading ? (
           <>

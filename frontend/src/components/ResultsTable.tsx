@@ -1,5 +1,6 @@
 import React, { useState } from 'react';
 import { Download, ChevronDown, ChevronUp, FileText, ArrowUpDown, Loader2, AlertCircle } from 'lucide-react';
+import { API_URL } from '../config/api';
 
 export interface TableRowData {
   id: string;
@@ -20,7 +21,7 @@ const ResultsTable: React.FC<ResultsTableProps> = ({ data }) => {
   const [sortCol, setSortCol] = useState<SortColumn>('documentName');
   const [sortDir, setSortDir] = useState<SortDirection>('asc');
   const [expandedRows, setExpandedRows] = useState<Set<string>>(new Set());
-  
+
   const [isDownloadingCSV, setIsDownloadingCSV] = useState(false);
   const [isDownloadingPDF, setIsDownloadingPDF] = useState(false);
   const [downloadError, setDownloadError] = useState<string | null>(null);
@@ -29,7 +30,7 @@ const ResultsTable: React.FC<ResultsTableProps> = ({ data }) => {
   const sortedData = [...data].sort((a, b) => {
     const valA = a[sortCol].toLowerCase();
     const valB = b[sortCol].toLowerCase();
-    
+
     if (valA < valB) return sortDir === 'asc' ? -1 : 1;
     if (valA > valB) return sortDir === 'asc' ? 1 : -1;
     return 0;
@@ -57,11 +58,11 @@ const ResultsTable: React.FC<ResultsTableProps> = ({ data }) => {
   const downloadFile = async (type: 'csv' | 'table-pdf') => {
     if (type === 'csv') setIsDownloadingCSV(true);
     else setIsDownloadingPDF(true);
-    
+
     setDownloadError(null);
 
     try {
-      const response = await fetch(`http://localhost:8000/api/v1/download/${type}`, {
+      const response = await fetch(`${API_URL}/api/v1/download/${type}`, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
@@ -76,18 +77,18 @@ const ResultsTable: React.FC<ResultsTableProps> = ({ data }) => {
       const blob = await response.blob();
       const cleanBlob = new Blob([blob], { type: type === 'csv' ? 'text/csv' : 'application/pdf' });
       const url = window.URL.createObjectURL(cleanBlob);
-      
+
       // Open the PDF in a new tab for instant viewing/printing if PDF
       if (type === 'table-pdf') {
         window.open(url, '_blank');
       }
-      
+
       const a = document.createElement('a');
       a.href = url;
       a.download = `documents_summary.${type === 'csv' ? 'csv' : 'pdf'}`;
       document.body.appendChild(a);
       a.click();
-      
+
       // Delay cleanup to remove the temporary link element.
       // We do NOT revoke the URL so that the PDF preview tab and native browser downloads remain functional.
       setTimeout(() => {
@@ -109,7 +110,7 @@ const ResultsTable: React.FC<ResultsTableProps> = ({ data }) => {
           <FileText className="text-gray-900" size={20} />
           <span className="font-medium text-gray-800">Processed Documents ({data.length})</span>
         </div>
-        
+
         <div className="flex items-center gap-3 w-full sm:w-auto">
           {downloadError && (
             <span className="text-xs text-red-400 flex items-center gap-1 mr-2">
@@ -142,7 +143,7 @@ const ResultsTable: React.FC<ResultsTableProps> = ({ data }) => {
             <thead className="text-xs uppercase bg-gray-50 text-gray-500 border-b border-gray-200">
               <tr>
                 <th className="w-12 px-4 py-4 text-center"></th>
-                <th 
+                <th
                   className="px-6 py-4 font-medium cursor-pointer hover:text-gray-200 transition-colors w-1/4"
                   onClick={() => handleSort('documentName')}
                 >
@@ -151,7 +152,7 @@ const ResultsTable: React.FC<ResultsTableProps> = ({ data }) => {
                     <ArrowUpDown size={14} className={sortCol === 'documentName' ? 'text-white' : 'text-gray-600'} />
                   </div>
                 </th>
-                <th 
+                <th
                   className="px-6 py-4 font-medium cursor-pointer hover:text-gray-200 transition-colors w-1/3"
                   onClick={() => handleSort('summary')}
                 >
@@ -168,10 +169,10 @@ const ResultsTable: React.FC<ResultsTableProps> = ({ data }) => {
               {sortedData.map((row, index) => {
                 const isExpanded = expandedRows.has(row.id);
                 const isEven = index % 2 === 0;
-                
+
                 return (
                   <React.Fragment key={row.id}>
-                    <tr 
+                    <tr
                       className={`hover:bg-gray-50 transition-colors cursor-pointer ${isEven ? 'bg-gray-50/50' : 'bg-white'}`}
                       onClick={() => toggleRow(row.id)}
                     >
@@ -189,7 +190,7 @@ const ResultsTable: React.FC<ResultsTableProps> = ({ data }) => {
                       <td className="px-6 py-4">
                         <div className="flex flex-wrap gap-1.5">
                           {(isExpanded ? row.keywords : row.keywords.slice(0, 3)).map((kw, idx) => (
-                            <span 
+                            <span
                               key={idx}
                               className="px-2 py-0.5 text-[10px] font-medium bg-gray-100 text-gray-700 border border-gray-200 rounded-full whitespace-nowrap"
                             >
@@ -209,7 +210,7 @@ const ResultsTable: React.FC<ResultsTableProps> = ({ data }) => {
                         </span>
                       </td>
                     </tr>
-                    
+
                     {/* Expanded Details Row */}
                     {isExpanded && (
                       <tr className={`${isEven ? 'bg-gray-50/50' : 'bg-gray-50'}`}>
@@ -220,15 +221,15 @@ const ResultsTable: React.FC<ResultsTableProps> = ({ data }) => {
                               <h4 className="text-sm font-semibold text-gray-700 uppercase tracking-wider">Full Summary</h4>
                               <p className="text-gray-600 text-sm leading-relaxed">{row.summary}</p>
                             </div>
-                            
+
                             {/* Highlights */}
                             {row.highlights.length > 0 && (
                               <div className="space-y-3">
                                 <h4 className="text-sm font-semibold text-gray-700 uppercase tracking-wider">Key Highlights</h4>
                                 <div className="space-y-2">
                                   {row.highlights.map((highlight, idx) => (
-                                    <blockquote 
-                                      key={idx} 
+                                    <blockquote
+                                      key={idx}
                                       className="pl-3 py-1.5 border-l-2 border-gray-400 bg-white text-sm text-gray-600 italic rounded-r-md border border-gray-200"
                                     >
                                       "{highlight}"
@@ -244,7 +245,7 @@ const ResultsTable: React.FC<ResultsTableProps> = ({ data }) => {
                   </React.Fragment>
                 );
               })}
-              
+
               {sortedData.length === 0 && (
                 <tr>
                   <td colSpan={5} className="px-6 py-12 text-center text-gray-500">
