@@ -1,4 +1,4 @@
-import React from 'react';
+
 import { useLocation, Link } from 'react-router-dom';
 import { Files, ArrowLeft } from 'lucide-react';
 import ResultsTable, { type TableRowData } from '../components/ResultsTable';

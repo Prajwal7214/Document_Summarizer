@@ -1,6 +1,6 @@
-import React, { useState, useRef } from 'react';
+import { useState, useRef } from 'react';
 import type { DragEvent, ChangeEvent } from 'react';
-import { UploadCloud, File as FileIcon, X, Loader2, AlertCircle, CheckCircle2 } from 'lucide-react';
+import { UploadCloud, File as FileIcon, X, Loader2 } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
 import { useToast } from '../contexts/ToastContext';
 import { API_URL } from '../config/api';
@@ -106,7 +106,7 @@ const FileUpload = () => {
         navigate('/summary', {
           state: {
             data,
-            document_id: data.document_id || Date.now().toString(), // fallback
+            document_id: data.document_id || undefined,
             filename: files[0].name
           }
         });

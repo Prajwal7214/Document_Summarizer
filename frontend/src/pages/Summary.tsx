@@ -1,4 +1,4 @@
-import React from 'react';
+
 import { useLocation, Link } from 'react-router-dom';
 import { FileText, ArrowLeft } from 'lucide-react';
 import SummaryCard, { type SummaryData } from '../components/SummaryCard';

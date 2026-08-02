@@ -1,10 +1,10 @@
 import json
 import re
-from fastapi import HTTPException
 from config import settings
 from services.file_parser import chunk_text
 from services.ai_client import call_ai_with_fallback
 from services.cache_service import get_cached, set_cache
+import asyncio
 
 
 # ── Prompts ────────────────────────────────────────────────────────────────────
@@ -186,15 +186,16 @@ def parse_response(raw_text: str) -> dict:
 async def summarize_document(text: str, summary_type: str = "detailed") -> dict:
     """Single document summarization with cache."""
     # Check cache first
-    cached = get_cached(text, summary_type)
+    cached = await get_cached(text, summary_type)
     if cached:
         return cached
 
     prompt = build_prompt(text, summary_type)
-    raw_text = call_ai_with_fallback(prompt)
+    raw_text = await call_ai_with_fallback(prompt)
     result = parse_response(raw_text)
 
-    set_cache(text, summary_type, result)
+    if result:
+        await set_cache(text, summary_type, result)
     return result
 
 
@@ -205,16 +206,17 @@ async def summarize_single_for_multi(
 ) -> dict:
     """Summarize one document as part of multi-document batch."""
     # Check cache first
-    cached = get_cached(text, summary_type)
+    cached = await get_cached(text, summary_type)
     if cached:
         result = cached.copy()
         result["name"] = filename
         return result
 
     prompt = build_prompt(text, summary_type)
-    raw_text = call_ai_with_fallback(prompt)
+    raw_text = await call_ai_with_fallback(prompt)
     result = parse_response(raw_text)
 
-    set_cache(text, summary_type, result)
+    if result:
+        await set_cache(text, summary_type, result)
     result["name"] = filename
     return result

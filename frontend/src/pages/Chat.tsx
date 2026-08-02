@@ -32,7 +32,7 @@ const Chat = () => {
   const fileInputRef = useRef<HTMLInputElement>(null);
 
   const location = useLocation();
-  const { error, info } = useToast();
+  const { error } = useToast();
 
   useEffect(() => {
     const state = location.state as { document_id?: string, filename?: string } | null;
@@ -126,7 +126,8 @@ const Chat = () => {
       });
 
       if (!response.ok) {
-        throw new Error('Failed to get answer');
+        const errorData = await response.json().catch(() => ({}));
+        throw new Error(errorData.detail || 'Failed to get answer from server');
       }
 
       const data = await response.json();
@@ -140,7 +141,16 @@ const Chat = () => {
 
       setMessages(prev => [...prev, aiMsg]);
     } catch (err: any) {
-      error(err.message || 'Error communicating with AI.');
+      const errMsg = err.message || 'Error communicating with AI.';
+      error(errMsg);
+      setMessages(prev => [
+        ...prev,
+        {
+          id: (Date.now() + 1).toString(),
+          role: 'ai',
+          content: `⚠️ ${errMsg}`
+        }
+      ]);
     } finally {
       setIsTyping(false);
     }

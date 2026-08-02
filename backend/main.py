@@ -1,12 +1,12 @@
-from fastapi import FastAPI
+from fastapi import FastAPI, Request
 from fastapi.middleware.cors import CORSMiddleware
 from routers.summarize import router as summarize_router
 from routers.download import router as download_router
 from routers.chat import router as chat_router
 from services.cache_service import get_cache_stats, clear_cache
 from fastapi.responses import JSONResponse
-from fastapi import Request
 from starlette.middleware.base import BaseHTTPMiddleware
+from config import settings
 import traceback
 
 # Max total upload size: 10 files × 10 MB each = 100 MB
@@ -26,25 +26,18 @@ class LimitUploadSizeMiddleware(BaseHTTPMiddleware):
         if content_length and int(content_length) > MAX_UPLOAD_BYTES:
             return JSONResponse(
                 status_code=413,
-                content={"detail": f"Request too large. Maximum total upload size is {MAX_UPLOAD_BYTES // (1024*1024)} MB."},
-                headers={"Access-Control-Allow-Origin": "*"}
+                content={"detail": f"Request too large. Maximum total upload size is {MAX_UPLOAD_BYTES // (1024*1024)} MB."}
             )
         return await call_next(request)
 
-# CORS must be added BEFORE the size-limit middleware
+app.add_middleware(LimitUploadSizeMiddleware)
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=[
-        "http://localhost:5173",
-        "http://127.0.0.1:5173",
-        "http://localhost:5174",
-        "http://127.0.0.1:5174",
-    ],
+    allow_origins=[origin.strip() for origin in settings.CORS_ORIGINS.split(",") if origin.strip()],
     allow_credentials=True,
     allow_methods=["*"],
     allow_headers=["*"],
 )
-app.add_middleware(LimitUploadSizeMiddleware)
 
 app.include_router(summarize_router)
 app.include_router(download_router)
@@ -57,8 +50,7 @@ async def global_exception_handler(request: Request, exc: Exception):
     traceback.print_exc()
     return JSONResponse(
         status_code=500,
-        content={"detail": f"Internal Server Error: {str(exc)}"},
-        headers={"Access-Control-Allow-Origin": "*"} # Or explicit origins
+        content={"detail": "An unexpected internal server error occurred."}
     )
 
 
@@ -68,13 +60,13 @@ def health_check():
 
 
 @app.get("/cache/stats", tags=["System"])
-def cache_stats():
+async def cache_stats():
     """See how many summaries are cached."""
-    return get_cache_stats()
+    return await get_cache_stats()
 
 
 @app.delete("/cache/clear", tags=["System"])
-def cache_clear():
+async def cache_clear():
     """Clear all cached summaries."""
-    clear_cache()
+    await clear_cache()
     return {"status": "cache cleared"}

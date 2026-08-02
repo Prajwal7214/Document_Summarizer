@@ -61,7 +61,9 @@ def call_ollama(prompt: str) -> str:
     return response["message"]["content"]
 
 
-def call_ai_with_fallback(prompt: str) -> str:
+import asyncio
+
+async def call_ai_with_fallback(prompt: str) -> str:
     """
     Try AI providers in order: Gemini → Groq → Ollama.
     Returns the first successful response.
@@ -73,7 +75,7 @@ def call_ai_with_fallback(prompt: str) -> str:
     if settings.GEMINI_API_KEY:
         try:
             print("Calling Gemini...")
-            result = call_gemini(prompt)
+            result = await asyncio.to_thread(call_gemini, prompt)
             print("Gemini responded successfully.")
             return result
         except Exception as e:
@@ -86,7 +88,7 @@ def call_ai_with_fallback(prompt: str) -> str:
     if settings.GROQ_API_KEY:
         try:
             print("Calling Groq...")
-            result = call_groq(prompt)
+            result = await asyncio.to_thread(call_groq, prompt)
             print("Groq responded successfully.")
             return result
         except Exception as e:
@@ -99,14 +101,14 @@ def call_ai_with_fallback(prompt: str) -> str:
     for attempt in range(2):
         try:
             print(f"Calling Ollama locally (attempt {attempt + 1})...")
-            result = call_ollama(prompt)
+            result = await asyncio.to_thread(call_ollama, prompt)
             print("Ollama responded successfully.")
             return result
         except Exception as e:
             error_msg = str(e).lower()
             if ("connection" in error_msg or "refused" in error_msg) and attempt == 0:
                 print("Ollama not ready, retrying in 3s...")
-                time.sleep(3)
+                await asyncio.sleep(3)
                 continue
             errors.append(f"Ollama: {str(e)}")
             break

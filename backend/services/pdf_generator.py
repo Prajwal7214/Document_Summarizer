@@ -9,6 +9,12 @@ from reportlab.platypus import (
     Table, TableStyle
 )
 from reportlab.lib.enums import TA_LEFT, TA_CENTER
+import html
+
+def _escape(text: str) -> str:
+    if not isinstance(text, str):
+        return str(text)
+    return html.escape(text)
 
 
 def generate_summary_pdf(summary: dict) -> bytes:
@@ -58,14 +64,16 @@ def generate_summary_pdf(summary: dict) -> bytes:
     story = []
 
     # Title
-    story.append(Paragraph(summary.get("title", "Document Summary"), title_style))
+    safe_title = _escape(summary.get("title", "Document Summary"))
+    story.append(Paragraph(safe_title, title_style))
     story.append(Spacer(1, 4))
     story.append(HRFlowable(width="100%", thickness=2,
                             color=colors.HexColor("#4a90d9"), spaceAfter=12))
 
     # Summary
     story.append(Paragraph("Summary", section_heading_style))
-    story.append(Paragraph(summary.get("summary", ""), body_style))
+    safe_summary = _escape(summary.get("summary", ""))
+    story.append(Paragraph(safe_summary, body_style))
     story.append(Spacer(1, 6))
     story.append(HRFlowable(width="100%", thickness=0.5,
                             color=colors.HexColor("#cccccc"), spaceAfter=6))
@@ -74,7 +82,7 @@ def generate_summary_pdf(summary: dict) -> bytes:
     story.append(Paragraph("Key Points", section_heading_style))
     bullets = summary.get("bullets", [])
     bullet_items = [
-        ListItem(Paragraph(bullet, body_style),
+        ListItem(Paragraph(_escape(bullet), body_style),
                  bulletColor=colors.HexColor("#4a90d9"), leftIndent=20)
         for bullet in bullets
     ]
@@ -86,7 +94,7 @@ def generate_summary_pdf(summary: dict) -> bytes:
     # Highlights
     story.append(Paragraph("Highlights", section_heading_style))
     for highlight in summary.get("highlights", []):
-        story.append(Paragraph(f'"{highlight}"', highlight_style))
+        story.append(Paragraph(f'"{_escape(highlight)}"', highlight_style))
         story.append(Spacer(1, 4))
     story.append(Spacer(1, 6))
     story.append(HRFlowable(width="100%", thickness=0.5,
@@ -94,7 +102,7 @@ def generate_summary_pdf(summary: dict) -> bytes:
 
     # Keywords
     story.append(Paragraph("Keywords", section_heading_style))
-    keywords_text = "   |   ".join([f"#{kw}" for kw in summary.get("keywords", [])])
+    keywords_text = "   |   ".join([f"#{_escape(kw)}" for kw in summary.get("keywords", [])])
     story.append(Paragraph(keywords_text, keyword_style))
 
     # Footer
@@ -166,15 +174,15 @@ def generate_table_pdf(summaries: list[dict]) -> bytes:
 
     # Data rows
     for summary_item in summaries:
-        keywords = "\n".join(["#" + kw for kw in summary_item.get("keywords", [])])
+        keywords = "\n".join(["#" + _escape(kw) for kw in summary_item.get("keywords", [])])
         highlight_list = summary_item.get("highlights", [])
         highlights = "\n\n".join([
-            str(i+1) + ". " + h
+            str(i+1) + ". " + _escape(h)
             for i, h in enumerate(highlight_list)
         ])
         row = [
-            Paragraph(summary_item.get("name", "Unknown"), cell_style),
-            Paragraph(summary_item.get("summary", ""), cell_style),
+            Paragraph(_escape(summary_item.get("name", "Unknown")), cell_style),
+            Paragraph(_escape(summary_item.get("summary", "")), cell_style),
             Paragraph(keywords, cell_style),
             Paragraph(highlights, cell_style),
         ]
