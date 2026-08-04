@@ -3,7 +3,7 @@ name: Deploy Document Summarizer
 on:
   push:
     branches:
-      - main
+      - github-actions-cicd
 
 jobs:
   deploy:
@@ -22,6 +22,8 @@ jobs:
           key: ${{ secrets.EC2_SSH_KEY }}
 
           script: |
+            set -e
+            
             cd ${{ secrets.PROJECT_PATH }}
 
             echo "Pulling latest code..."
