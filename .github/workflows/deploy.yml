@@ -24,18 +24,53 @@ jobs:
           script: |
             set -e
 
+            echo "=============================="
+            echo "Starting deployment..."
+            echo "=============================="
+
+            docker --version
+            docker compose version
+
             cd ${{ secrets.PROJECT_PATH }}
+
+            echo "Repository status:"
+            git status
+
+            echo "Current branch:"
+            git branch
 
             echo "Pulling latest code..."
             git pull origin main
 
-            echo "Stopping old containers..."
+            echo "Latest deployed commit:"
+            git log --oneline -n 1
+
+            echo "Stopping existing containers..."
             docker compose down
 
-            echo "Building new containers..."
-            docker compose up -d --build
+            echo "Building and starting containers..."
+            docker compose up -d --build || {
+                echo "Container startup failed!"
+                docker compose logs
+                exit 1
+            }
 
-            echo "Cleaning unused Docker images..."
+            echo "Waiting for application..."
+            sleep 15
+
+            echo "Checking application health..."
+            curl -f http://localhost && echo "Application is healthy."
+
+            echo "Running containers:"
+            docker compose ps
+
+            echo "Disk usage:"
+            df -h
+
+            echo "Removing unused Docker images..."
             docker image prune -f
+
+            echo "Deployment completed at:"
+            date
 
             echo "Deployment completed successfully!"
