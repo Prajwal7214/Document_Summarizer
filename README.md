@@ -1,10 +1,10 @@
 # 📄 Summarix
 
-**Summarix** is a full-stack, AI-powered document summarization and RAG (Retrieval-Augmented Generation) chat application. It supports multiple AI providers — **Google Gemini**, **Groq**, and **Ollama (local)** — with automatic fallback to ensure reliable responses. The app features a modern React frontend with authentication, a sidebar with user profile management, and rich export options.
+**Summarix** is a production-ready, full-stack AI-powered document summarization and RAG (Retrieval-Augmented Generation) chat application. It features a modern React frontend, a FastAPI backend, Redis caching, Qdrant vector database, Nginx reverse proxy, Docker Compose containerization, Terraform Infrastructure-as-Code (IaC), and automated GitHub Actions CI/CD deployment on AWS EC2.
 
 ---
 
-## ✨ Features
+## ✨ Key Features
 
 | Feature | Details |
 |---|---|
@@ -13,33 +13,55 @@
 | 📄 **Single Document Summary** | Upload one PDF, DOCX, or TXT → get a structured AI summary |
 | 📚 **Multi-Document Summary** | Upload up to 10 files simultaneously → compare in a results table |
 | 🧠 **Three Summary Modes** | Short (3 bullets), Detailed (full paragraph), Academic (formal abstract) |
-| 💬 **RAG Document Chat** | Ask questions about your document using FAISS vector search + AI |
+| 💬 **RAG Document Chat** | Ask questions about your document using Qdrant vector search + AI |
 | ⬇️ **Export Summaries** | Download single summaries as **PDF**; multi-doc results as **CSV** or **PDF table** |
-| ⚡ **Smart Caching** | Previously generated summaries are instantly retrieved from cache |
+| ⚡ **Smart Redis Caching** | Previously generated summaries are instantly retrieved from Redis cache |
 | 🔄 **AI Fallback Chain** | Gemini → Groq → Ollama (automatic, no manual switching needed) |
-| 🛡️ **Upload Size Limit** | Maximum 10 MB per file; maximum 10 files (100 MB total) per request |
+| 🌐 **Nginx Reverse Proxy** | Port 80 same-origin routing for zero CORS issues and no hardcoded IPs |
+| ☁️ **Infrastructure as Code** | Terraform scripts for automated AWS VPC, EC2, Elastic IP, and SG provisioning |
+| 🚀 **Automated CI/CD** | GitHub Actions pipeline for auto-deploying updates to AWS EC2 |
+
+---
+
+## 🏗️ System Architecture
+
+```mermaid
+graph TD
+    Client[Browser / User on Port 80] -->|HTTP / HTTPS| Nginx[Frontend Container: Nginx Port 80]
+    Nginx -->|Serves Static Build| SPA[React 19 SPA Bundle]
+    Nginx -->|Proxy Pass /api/| Backend[FastAPI Backend Container Port 8000]
+    Backend -->|Cache Query| Redis[Redis Container Port 6379]
+    Backend -->|Vector Search| Qdrant[Qdrant Container Port 6333]
+    Backend -->|LLM Inference| AI[Google Gemini / Groq / Ollama]
+```
 
 ---
 
 ## 🚀 Tech Stack
 
-### Frontend
-- **React 18** + **Vite** + **TypeScript**
+### Frontend & Web Server
+- **React 19** + **Vite 8** + **TypeScript**
 - **Tailwind CSS v4** — utility-first styling
-- **React Router v6** — client-side routing with protected & guest routes
+- **Nginx (Alpine)** — production static file web server & API reverse proxy
+- **React Router v7** — client-side routing with protected routes
 - **Lucide React** — icon library
-- **SF Pro Display** — custom font (loaded via `@font-face`)
 
-### Backend
-- **Python 3.10+** + **FastAPI** (v0.115)
-- **Uvicorn** — ASGI server
+### Backend & AI Infrastructure
+- **Python 3.10+** + **FastAPI** (v0.115) + **Uvicorn**
 - **Google Gemini** (`gemini-2.0-flash`) — primary AI model
 - **Groq** — secondary AI fallback
-- **Ollama** (`llama3.2`) — local AI fallback (offline, zero API limits)
-- **FAISS** — in-memory vector database for RAG
-- **Sentence Transformers** — local document embeddings (no API)
-- **ReportLab** — PDF generation
-- **PyPDF + python-docx** — document parsing
+- **Ollama** (`llama3.2`) — local AI fallback (offline capability)
+- **Qdrant** — vector database for RAG document embeddings
+- **Redis 7** — high-performance summary caching
+- **ReportLab** — server-side PDF export generation
+- **PyPDF + python-docx** — multi-format document parsing
+
+### DevOps & Cloud Infrastructure
+- **AWS EC2** — `t3.micro` instance (Amazon Linux 2023)
+- **AWS Elastic IP (EIP)** — static IP allocation
+- **Terraform** — VPC, Subnet, Internet Gateway, Security Groups, EC2, EIP
+- **Docker & Docker Compose** — multi-container orchestration
+- **GitHub Actions** — automated CI/CD deployment pipeline
 
 ---
 
@@ -47,118 +69,128 @@
 
 ```text
 document_summarizer/
-├── backend/                        # FastAPI backend
-│   ├── main.py                     # App entry point, CORS, middleware
-│   ├── config.py                   # Settings & environment variables
-│   ├── requirements.txt            # Python dependencies
-│   ├── .env                        # API keys (not committed)
-│   ├── routers/
-│   │   ├── summarize.py            # POST /api/v1/summarize (single & multi)
-│   │   ├── download.py             # POST /api/v1/download/{pdf,csv,table-pdf}
-│   │   └── chat.py                 # POST /api/v1/chat/{ingest,ask}
-│   ├── services/
-│   │   ├── ai_client.py            # Gemini / Groq / Ollama with fallback logic
-│   │   ├── summarizer.py           # Prompt building & summary parsing
-│   │   ├── rag_service.py          # FAISS ingestion & retrieval
-│   │   ├── file_parser.py          # PDF / DOCX / TXT text extraction
-│   │   ├── cache_service.py        # In-memory summary cache
-│   │   ├── pdf_generator.py        # ReportLab PDF export
-│   │   └── csv_generator.py        # CSV export
-│   └── models/
-│       └── schemas.py              # Pydantic request/response models
+├── .github/
+│   └── workflows/
+│       └── deploy.yml              # GitHub Actions CI/CD pipeline
 │
-└── frontend/                       # React frontend
-    ├── src/
-    │   ├── App.tsx                  # Router setup, protected & guest routes
-    │   ├── main.tsx                 # React entry point
-    │   ├── index.css                # Tailwind base + custom font + animations
-    │   ├── contexts/
-    │   │   ├── AuthContext.tsx      # Auth state (login, signup, logout)
-    │   │   └── ToastContext.tsx     # Global toast notifications
-    │   ├── components/
-    │   │   ├── Layout.tsx           # Sidebar nav + profile section
-    │   │   ├── FileUpload.tsx       # Drag-and-drop file uploader
-    │   │   ├── SummaryCard.tsx      # Single document result card
-    │   │   └── ResultsTable.tsx     # Multi-document results table
-    │   └── pages/
-    │       ├── Login.tsx            # Sign-in page
-    │       ├── Signup.tsx           # Registration page
-    │       ├── Home.tsx             # Upload & summarize page
-    │       ├── Summary.tsx          # View latest summary
-    │       ├── Documents.tsx        # Documents list
-    │       └── Chat.tsx             # RAG chat interface
-    ├── public/
-    │   └── fonts/                   # SF Pro Display font files
-    └── package.json
+├── DevOps/
+│   └── Terraform/                  # Infrastructure as Code (IaC)
+│       ├── provider.tf             # AWS provider configuration
+│       ├── vpc.tf                  # Custom VPC definition
+│       ├── subnet.tf               # Public subnet
+│       ├── internet_gateway.tf     # Internet Gateway
+│       ├── route_table.tf          # Route table & subnet association
+│       ├── security_group.tf       # Security group (Ports 22, 80)
+│       ├── ec2.tf                  # EC2 instance (30GB gp3 volume)
+│       ├── elastic_ip.tf           # Static Elastic IP allocation
+│       ├── variables.tf            # Input variables
+│       ├── outputs.tf              # Outputs (Public IP, DNS, EIP)
+│       ├── terraform.tfvars        # Variable definitions
+│       └── user_data.sh            # EC2 bootstrap initialization script
+│
+├── backend/                        # FastAPI backend
+│   ├── main.py                     # App entry point, CORS, upload limits
+│   ├── config.py                   # Settings & environment variables
+│   ├── requirements.txt            # Python dependencies (CPU-optimized PyTorch)
+│   ├── Dockerfile                  # Backend container configuration
+│   ├── routers/                    # API routes (/summarize, /download, /chat)
+│   ├── services/                   # AI client, RAG, cache, parsers, export generators
+│   └── models/                     # Pydantic schemas
+│
+├── frontend/                       # React frontend
+│   ├── src/                        # React components, pages, context, styles
+│   ├── nginx.conf                  # Production Nginx reverse proxy configuration
+│   ├── Dockerfile                  # Multi-stage Dockerfile (build & Nginx stage)
+│   ├── package.json                # Frontend dependencies & build script
+│   └── vite.config.ts              # Vite configuration
+│
+├── docker-compose.yml              # Docker Compose multi-container configuration
+└── DEPLOYMENT_DEBUGGING_REPORT.md  # Comprehensive deployment case study
 ```
 
 ---
 
-## 🔧 Installation & Setup
+## 🐳 Running with Docker Compose (Recommended)
 
-### Prerequisites
-- **Node.js** 18+ and **npm**
-- **Python** 3.10+
-- *(Optional)* **Ollama** for fully local/offline mode
+To run the entire application stack locally or on a server using Docker:
 
----
+### 1. Prerequisites
+- **Docker** & **Docker Compose** installed.
 
-### 1. Backend Setup
-
-```bash
-cd backend
-
-# Create a virtual environment (recommended)
-python -m venv venv
-venv\Scripts\activate          # Windows
-# source venv/bin/activate     # macOS / Linux
-
-# Install dependencies
-pip install -r requirements.txt
-```
-
-Create a `.env` file in the `backend/` directory with your API keys:
+### 2. Environment Setup
+Create a `.env` file in the `backend/` directory:
 
 ```env
-GEMINI_API_KEY=your_gemini_api_key_here
 GROQ_API_KEY=your_groq_api_key_here
+GEMINI_API_KEY=your_gemini_api_key_here
+REDIS_URL=redis://redis:6379/0
+QDRANT_URL=http://qdrant:6333
+CORS_ORIGINS=*
 ```
 
-> **Note:** Both keys are optional. If Gemini fails, the app automatically falls back to Groq, then to Ollama (if running locally). At least one should be configured for cloud usage.
-
-Start the FastAPI server:
+### 3. Build & Launch Containers
 
 ```bash
-venv\Scripts\python -m uvicorn main:app --host 127.0.0.1 --port 8000
+# Clone the repository
+git clone https://github.com/Prajwal7214/Document_Summarizer.git
+cd Document_Summarizer
+
+# Start all services in detached mode
+docker compose up --build -d
+
+# Verify container status
+docker compose ps
 ```
 
-The API will be available at `http://localhost:8000`.  
-Interactive API docs: `http://localhost:8000/docs`
+The application will be accessible at:
+- **Web App**: `http://localhost` (Port 80)
+- **Backend API Docs**: `http://localhost:8000/docs`
 
 ---
 
-### 2. Frontend Setup
+## ☁️ Infrastructure Deployment with Terraform
+
+Provision AWS EC2, VPC, Security Groups, and Elastic IP automatically using Terraform:
+
+### 1. Prerequisites
+- **Terraform CLI** (v1.5+)
+- **AWS CLI** configured with credentials (`aws configure`)
+
+### 2. Deploy Infrastructure
 
 ```bash
-cd frontend
-npm install
-npm run dev
+cd Devops/Terraform
+
+# Initialize Terraform modules
+terraform init
+
+# Validate configuration
+terraform validate
+
+# Review execution plan
+terraform plan
+
+# Apply infrastructure changes
+terraform apply -auto-approve
 ```
 
-The web app will be available at `http://localhost:5173`.
+Upon completion, Terraform will output your EC2 **Public IP** and **Elastic IP**.
 
 ---
 
-### 3. (Optional) Local AI with Ollama
+## 🔄 CI/CD Automated Deployment
 
-To use the fully offline fallback:
+Automated deployment is configured via GitHub Actions (`.github/workflows/deploy.yml`).
 
-1. Download Ollama from [ollama.com](https://ollama.com)
-2. Pull the model:
-   ```bash
-   ollama pull llama3.2
-   ```
-3. Ensure it's running: `ollama serve`
+### Setup GitHub Secrets
+In your GitHub repository under **Settings > Secrets and variables > Actions**, add:
+
+- `EC2_HOST`: Your AWS EC2 Public IP or Elastic IP
+- `EC2_USER`: `ec2-user`
+- `EC2_SSH_KEY`: Contents of your private SSH key (`.pem`)
+- `PROJECT_PATH`: `/home/ec2-user/Document_Summarizer`
+
+Pushing to the deployment branch triggers automatic `git pull`, container rebuild, and deployment cleanup.
 
 ---
 
@@ -166,18 +198,18 @@ To use the fully offline fallback:
 
 | Method | Endpoint | Description |
 |---|---|---|
-| `GET` | `/health` | Health check |
+| `GET` | `/health` | System health check |
 | `POST` | `/api/v1/summarize` | Summarize a single document |
 | `POST` | `/api/v1/summarize-multiple` | Summarize up to 10 documents |
 | `POST` | `/api/v1/download/pdf` | Export single summary as PDF |
 | `POST` | `/api/v1/download/csv` | Export multi-doc results as CSV |
 | `POST` | `/api/v1/download/table-pdf` | Export multi-doc results as PDF table |
-| `POST` | `/api/v1/chat/ingest` | Ingest a document into the vector store |
+| `POST` | `/api/v1/chat/ingest` | Ingest a document into Qdrant vector store |
 | `POST` | `/api/v1/chat/ask` | Ask a question about an ingested document |
 | `GET` | `/api/v1/chat/documents` | List all ingested documents |
-| `DELETE` | `/api/v1/chat/documents/{id}` | Remove a document from vector store |
-| `GET` | `/cache/stats` | View summary cache statistics |
-| `DELETE` | `/cache/clear` | Clear all cached summaries |
+| `DELETE` | `/api/v1/chat/documents/{id}` | Remove document from vector store |
+| `GET` | `/cache/stats` | View Redis cache statistics |
+| `DELETE` | `/cache/clear` | Clear summary cache |
 
 ---
 
@@ -189,31 +221,22 @@ To use the fully offline fallback:
 | Word Document | `.docx` | 10 MB |
 | Plain Text | `.txt` | 10 MB |
 
-> Maximum **10 files** per multi-document request (100 MB total).
+> Maximum **10 files** per multi-document request (100 MB total limit).
 
 ---
 
-## 🔒 Security Notes
+## 🤖 AI Model Fallback Chain
 
-- Never commit `.env` files to source control.
-- Add `backend/.env`, `backend/venv/`, and `frontend/node_modules/` to `.gitignore`.
-- API keys should always be kept private.
-- User credentials are stored in browser `localStorage` — this is a demo setup. For production, replace with a proper backend auth system (JWT, OAuth, etc.).
-
----
-
-## 🤖 AI Model Priority
-
-The backend uses an automatic fallback chain:
+The backend automatically attempts models in order of priority:
 
 ```
 Google Gemini (gemini-2.0-flash)
-        ↓ (if unavailable / quota exceeded)
-Groq (fast inference)
+        ↓ (if rate-limited / unavailable)
+Groq (Fast Cloud Inference)
         ↓ (if unavailable)
-Ollama (llama3.2 — fully local, no internet required)
+Ollama (llama3.2 — Local / Offline)
 ```
 
 ---
 
-*Built with FastAPI + React + Gemini + Groq + Ollama + FAISS*
+*Built with React + FastAPI + Nginx + Redis + Qdrant + Terraform + AWS EC2 + GitHub Actions*
