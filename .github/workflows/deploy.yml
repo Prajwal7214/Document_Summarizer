@@ -3,7 +3,7 @@ name: Deploy Document Summarizer
 on:
   push:
     branches:
-      - github-actions-cicd
+      - main
 
 jobs:
   deploy:
@@ -27,7 +27,7 @@ jobs:
             cd ${{ secrets.PROJECT_PATH }}
 
             echo "Pulling latest code..."
-            git pull origin github-actions-cicd
+            git pull origin main
 
             echo "Stopping old containers..."
             docker compose down
