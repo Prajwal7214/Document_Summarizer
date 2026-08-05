@@ -1,0 +1,12 @@
+# Terraform
+.terraform/
+*.tfstate
+*.tfstate.*
+*.tfplan
+crash.log
+
+# Local variables
+terraform.tfvars
+
+# Terraform binary
+terraform.exe
