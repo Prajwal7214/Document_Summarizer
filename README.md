@@ -1,6 +1,34 @@
 # 📄 Summarix
 
-**Summarix** is a production-ready, full-stack AI-powered document summarization and RAG (Retrieval-Augmented Generation) chat application. It features a modern React frontend, a FastAPI backend, Redis caching, Qdrant vector database, Nginx reverse proxy, Docker Compose containerization, Terraform Infrastructure-as-Code (IaC), and automated GitHub Actions CI/CD deployment on AWS EC2.
+![React](https://img.shields.io/badge/React-19-blue?logo=react)
+![FastAPI](https://img.shields.io/badge/FastAPI-0.115-green?logo=fastapi)
+![Docker](https://img.shields.io/badge/Docker-Enabled-2496ED?logo=docker)
+![Terraform](https://img.shields.io/badge/Terraform-IaC-7B42BC?logo=terraform)
+![AWS](https://img.shields.io/badge/AWS-EC2-orange?logo=amazon-aws)
+![GitHub Actions](https://img.shields.io/badge/CI/CD-GitHub_Actions-black?logo=github-actions)
+![License](https://img.shields.io/badge/License-MIT-yellow)
+
+**Summarix** is a production-ready, full-stack AI-powered document summarization and RAG (Retrieval-Augmented Generation) chat application. It features a modern React frontend, a FastAPI backend, Redis caching, Qdrant vector database, Nginx reverse proxy, Docker Compose containerization, Terraform Infrastructure-as-Code (IaC) with remote state management, and automated GitHub Actions CI/CD deployment on AWS EC2.
+
+---
+
+## 🌍 Live Demo
+
+* **Web Application**: `http://<your-ec2-ip>`
+* **Interactive API Documentation**: `http://<your-ec2-ip>/docs`
+
+---
+
+## 📸 Screenshots
+
+| Feature / Page | Preview |
+|---|---|
+| 🔐 **Login Page** | ![Login Page](docs/screenshots/login.png) |
+| 📝 **Sign Up Page** | ![Sign Up Page](docs/screenshots/SIGNUP.png) |
+| 📄 **Single Document Summary** | ![Single Document Summary](docs/screenshots/summary.png) |
+| 📚 **Multi-Document Summary** | ![Multi-Document Summary](docs/screenshots/multipledoc-summary.png) |
+| 📥 **PDF Summary Export** | ![PDF Export](docs/screenshots/pdf.png) |
+| 💬 **RAG Document Chat** | ![RAG Chat](docs/screenshots/chat.png) |
 
 ---
 
@@ -18,12 +46,14 @@
 | ⚡ **Smart Redis Caching** | Previously generated summaries are instantly retrieved from Redis cache |
 | 🔄 **AI Fallback Chain** | Gemini → Groq → Ollama (automatic, no manual switching needed) |
 | 🌐 **Nginx Reverse Proxy** | Port 80 same-origin routing for zero CORS issues and no hardcoded IPs |
-| ☁️ **Infrastructure as Code** | Terraform scripts for automated AWS VPC, EC2, Elastic IP, and SG provisioning |
-| 🚀 **Automated CI/CD** | GitHub Actions pipeline for auto-deploying updates to AWS EC2 |
+| ☁️ **Infrastructure as Code** | Terraform scripts with S3 remote state & DynamoDB locking for AWS VPC, EC2, EIP |
+| 🚀 **Automated CI/CD** | GitHub Actions pipeline for auto-deploying updates to AWS EC2 on `main` branch |
 
 ---
 
 ## 🏗️ System Architecture
+
+![Project Architecture](docs/screenshots/project-architecture.png)
 
 ```mermaid
 graph TD
@@ -59,6 +89,7 @@ graph TD
 ### DevOps & Cloud Infrastructure
 - **AWS EC2** — `t3.micro` instance (Amazon Linux 2023)
 - **AWS Elastic IP (EIP)** — static IP allocation
+- **AWS S3 & DynamoDB** — Terraform remote state storage & state locking
 - **Terraform** — VPC, Subnet, Internet Gateway, Security Groups, EC2, EIP
 - **Docker & Docker Compose** — multi-container orchestration
 - **GitHub Actions** — automated CI/CD deployment pipeline
@@ -68,25 +99,33 @@ graph TD
 ## 📁 Project Structure
 
 ```text
-document_summarizer/
+Document_Summarizer/
 ├── .github/
 │   └── workflows/
-│       └── deploy.yml              # GitHub Actions CI/CD pipeline
+│       └── deploy.yml              # GitHub Actions CI/CD pipeline (main branch)
 │
-├── DevOps/
-│   └── Terraform/                  # Infrastructure as Code (IaC)
+├── Devops/                         # DevOps Infrastructure & Provisioning
+│   ├── Terraform/                  # Main Infrastructure Provisioning
+│   │   ├── provider.tf             # AWS provider configuration
+│   │   ├── backend.tf              # S3 backend & DynamoDB state locking
+│   │   ├── vpc.tf                  # Custom VPC definition
+│   │   ├── subnet.tf               # Public subnet
+│   │   ├── internet_gateway.tf     # Internet Gateway
+│   │   ├── route_table.tf          # Route table & subnet association
+│   │   ├── security_group.tf       # Security group (Ports 22, 80)
+│   │   ├── ec2.tf                  # EC2 instance (30GB gp3 root volume)
+│   │   ├── elastic_ip.tf           # Static Elastic IP allocation
+│   │   ├── variables.tf            # Input variables
+│   │   ├── outputs.tf              # Outputs (Public IP, DNS, EIP)
+│   │   ├── terraform.tfvars        # Variable definitions
+│   │   └── user_data.sh            # EC2 bootstrap initialization script
+│   │
+│   └── Terraform-Bootstrap/        # Remote State Infrastructure Setup
+│       ├── main.tf                 # S3 state bucket & DynamoDB lock table
 │       ├── provider.tf             # AWS provider configuration
-│       ├── vpc.tf                  # Custom VPC definition
-│       ├── subnet.tf               # Public subnet
-│       ├── internet_gateway.tf     # Internet Gateway
-│       ├── route_table.tf          # Route table & subnet association
-│       ├── security_group.tf       # Security group (Ports 22, 80)
-│       ├── ec2.tf                  # EC2 instance (30GB gp3 volume)
-│       ├── elastic_ip.tf           # Static Elastic IP allocation
-│       ├── variables.tf            # Input variables
-│       ├── outputs.tf              # Outputs (Public IP, DNS, EIP)
-│       ├── terraform.tfvars        # Variable definitions
-│       └── user_data.sh            # EC2 bootstrap initialization script
+│       ├── variables.tf            # Bootstrap variables
+│       ├── outputs.tf              # Bucket & lock table outputs
+│       └── terraform.tfvars        # Bootstrap variable values
 │
 ├── backend/                        # FastAPI backend
 │   ├── main.py                     # App entry point, CORS, upload limits
@@ -150,18 +189,28 @@ The application will be accessible at:
 
 ## ☁️ Infrastructure Deployment with Terraform
 
-Provision AWS EC2, VPC, Security Groups, and Elastic IP automatically using Terraform:
+Provision AWS S3 state backend, VPC, Security Groups, EC2, and Elastic IP automatically using Terraform:
 
 ### 1. Prerequisites
 - **Terraform CLI** (v1.5+)
 - **AWS CLI** configured with credentials (`aws configure`)
 
-### 2. Deploy Infrastructure
+### 2. Step 1: Bootstrap Remote State Backend (S3 + DynamoDB)
 
 ```bash
-cd Devops/Terraform
+cd Devops/Terraform-Bootstrap
 
-# Initialize Terraform modules
+# Initialize and apply state storage infrastructure
+terraform init
+terraform apply -auto-approve
+```
+
+### 3. Step 2: Provision Main AWS Infrastructure
+
+```bash
+cd ../Terraform
+
+# Initialize with S3 backend
 terraform init
 
 # Validate configuration
@@ -180,17 +229,59 @@ Upon completion, Terraform will output your EC2 **Public IP** and **Elastic IP**
 
 ## 🔄 CI/CD Automated Deployment
 
-Automated deployment is configured via GitHub Actions (`.github/workflows/deploy.yml`).
+Automated deployment is configured via GitHub Actions ([`.github/workflows/deploy.yml`](file:///.github/workflows/deploy.yml)) on every push to the `main` branch.
 
-### Setup GitHub Secrets
-In your GitHub repository under **Settings > Secrets and variables > Actions**, add:
+### 📊 Deployment Workflow Architecture
 
-- `EC2_HOST`: Your AWS EC2 Public IP or Elastic IP
-- `EC2_USER`: `ec2-user`
-- `EC2_SSH_KEY`: Contents of your private SSH key (`.pem`)
-- `PROJECT_PATH`: `/home/ec2-user/Document_Summarizer`
+```mermaid
+flowchart TD
+    A[Developer Pushes Code] -->|Push to main| B[GitHub Actions Pipeline Triggered]
+    B --> C[Establish SSH Session to AWS EC2]
+    C --> D[git pull origin main]
+    D --> E[docker compose down]
+    E --> F[docker compose up -d --build]
+    F --> G[Health Check: curl -f http://localhost]
+    G -->|Success| H[docker image prune -f]
+    H --> I[Deployment Completed Successfully]
+```
 
-Pushing to the deployment branch triggers automatic `git pull`, container rebuild, and deployment cleanup.
+```text
+Developer
+   │
+   ▼
+Push to main
+   │
+   ▼
+GitHub Actions Triggered
+   │
+   ▼
+SSH into EC2
+   │
+   ▼
+git pull origin main
+   │
+   ▼
+docker compose down
+   │
+   ▼
+docker compose up -d --build
+   │
+   ▼
+Health Check (curl -f http://localhost)
+   │
+   ▼
+Deployment Completed Successfully
+```
+
+### 🔑 Required GitHub Secrets
+Configure the following secrets under **Settings > Secrets and variables > Actions** in your GitHub repository:
+
+| Secret Name | Description | Example / Value |
+|---|---|---|
+| `EC2_HOST` | Public IP or Elastic IP of your EC2 instance | `3.6.41.153` |
+| `EC2_USER` | SSH Username for EC2 | `ec2-user` |
+| `EC2_SSH_KEY` | Private SSH Key (`.pem` file contents) | `-----BEGIN RSA PRIVATE KEY-----...` |
+| `PROJECT_PATH` | Absolute path to repository on EC2 | `/home/ec2-user/Document_Summarizer` |
 
 ---
 
@@ -236,6 +327,21 @@ Groq (Fast Cloud Inference)
         ↓ (if unavailable)
 Ollama (llama3.2 — Local / Offline)
 ```
+
+---
+
+## 📜 License
+
+This project is licensed under the MIT License.
+
+---
+
+## 👨‍💻 Author
+
+**Prajwal Shinde**
+
+*  **LinkedIn**: [prajwal1320](https://www.linkedin.com/in/prajwal1320/)
+*  **GitHub**: [@Prajwal7214](https://github.com/Prajwal7214)
 
 ---
 

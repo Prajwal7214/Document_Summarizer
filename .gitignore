@@ -48,3 +48,6 @@ scratch/
 *.pyc
 *.pyo
 build/
+
+# ─── Terraform ──────────────────────────────────────────────
+*.tfplan
